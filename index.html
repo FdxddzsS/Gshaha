@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>اتجاه القبلة</title>
+  <style>
+    /* إعادة تهيئة بسيطة */
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    body {
+      font-family: Arial, sans-serif;
+      background: linear-gradient(135deg, #fff8e1, #ffd54f);
+      color: #333;
+      text-align: center;
+      height: 100vh;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+    header {
+      background-color: rgba(255, 255, 255, 0.3);
+      padding: 1rem;
+      font-size: 1.5rem;
+      font-weight: bold;
+    }
+    /* حاوية المحتوى الرئيسية */
+    main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      position: relative;
+    }
+
+    /* رسالة الانتظار */
+    .loader {
+      border: 6px solid #f3f3f3;
+      border-top: 6px solid #fbc02d;
+      border-radius: 50%;
+      width: 60px;
+      height: 60px;
+      animation: spin 1s linear infinite;
+      margin: 2rem auto;
+    }
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    /* نص تعليمات صغير */
+    .info-text {
+      margin-top: 1rem;
+      font-size: 1rem;
+      color: #444;
+    }
+
+    /* حاوية المؤشر */
+    #qibla-container {
+      position: relative;
+      width: 220px;
+      height: 220px;
+      margin: 2rem auto;
+      display: none; /* مخفي حتى يتم تحديد الموقع */
+      justify-content: center;
+      align-items: center;
+    }
+
+    /* شكل خلفي (مثل بوصلة) - اختياري لإضافة لمسة جمالية */
+    .compass-background {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 220px;
+      height: 220px;
+      background: url('https://upload.wikimedia.org/wikipedia/commons/3/38/Compass_Rose_English_North.svg') no-repeat center/contain;
+      opacity: 0.2;
+    }
+
+    /* صورة الكعبة */
+    #qibla-marker {
+      width: 70px;
+      height: 70px;
+      transition: transform 0.5s ease-in-out;
+    }
+
+    /* تنسيق الفوتر */
+    footer {
+      background-color: rgba(255, 255, 255, 0.3);
+      padding: 0.5rem;
+      font-size: 0.9rem;
+    }
+  </style>
+</head>
+<body>
+  <!-- رأس الصفحة -->
+  <header>اتجاه القبلة</header>
+
+  <!-- المحتوى الرئيسي -->
+  <main>
+    <!-- رسالة انتظار (تظهر قبل الحصول على إحداثيات الموقع) -->
+    <div id="loading-indicator">
+      <div class="loader"></div>
+      <div class="info-text">الرجاء السماح بالوصول للموقع الجغرافي...</div>
+    </div>
+
+    <!-- حاوية المؤشر -->
+    <div id="qibla-container">
+      <div class="compass-background"></div>
+      <img
+        id="qibla-marker"
+        src="https://upload.wikimedia.org/wikipedia/commons/thumb/3/3b/Kaaba.svg/512px-Kaaba.svg.png"
+        alt="الكعبة"
+      />
+    </div>
+  </main>
+
+  <!-- تذييل الصفحة -->
+  <footer>
+    &copy; 2025 - تطبيق اتجاه القبلة
+  </footer>
+
+  <script>
+    /**
+     * دالة لتدوير المؤشر حسب الزاوية
+     */
+    function updateQiblaDirection(angle) {
+      document.getElementById('qibla-marker').style.transform = `rotate(${angle}deg)`;
+    }
+
+    /**
+     * حساب زاوية القبلة بناءً على إحداثيات المستخدم
+     */
+    function getQiblaAngle(lat, lon) {
+      const kaabaLat = 21.4225;
+      const kaabaLon = 39.8262;
+      let deltaLon = (kaabaLon - lon) * Math.PI / 180;
+      let lat1 = lat * Math.PI / 180;
+      let lat2 = kaabaLat * Math.PI / 180;
+      let y = Math.sin(deltaLon) * Math.cos(lat2);
+      let x = Math.cos(lat1) * Math.sin(lat2) -
+              Math.sin(lat1) * Math.cos(lat2) * Math.cos(deltaLon);
+      let angle = Math.atan2(y, x) * 180 / Math.PI;
+      return (angle + 360) % 360;
+    }
+
+    /**
+     * الحصول على موقع المستخدم وتحديد اتجاه القبلة
+     */
+    function initQiblaDirection() {
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+          position => {
+            // إحداثيات المستخدم
+            let userLat = position.coords.latitude;
+            let userLon = position.coords.longitude;
+
+            // حساب زاوية القبلة
+            let qiblaAngle = getQiblaAngle(userLat, userLon);
+
+            // إخفاء شاشة التحميل
+            document.getElementById('loading-indicator').style.display = 'none';
+
+            // إظهار حاوية المؤشر
+            let qiblaContainer = document.getElementById('qibla-container');
+            qiblaContainer.style.display = 'flex';
+
+            // تحديث اتجاه القبلة
+            updateQiblaDirection(qiblaAngle);
+          },
+          error => {
+            alert('تعذر تحديد الموقع. الرجاء تفعيل خدمة الموقع الجغرافي.');
+          }
+        );
+      } else {
+        alert('المتصفح لا يدعم تحديد الموقع الجغرافي.');
+      }
+    }
+
+    // عند تحميل الصفحة
+    window.addEventListener('load', initQiblaDirection);
+  </script>
+</body>
+</html>
